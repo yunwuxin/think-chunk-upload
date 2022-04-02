@@ -9,7 +9,7 @@
     ],
     "require": {
         "topthink/framework": "^6.0",
-        "ramsey/uuid": "^4.3",
+        "ramsey/uuid": "^3.9|^4.3",
         "symfony/filesystem": "^5.4|^6.0",
         "guzzlehttp/guzzle": "^7.0.1"
     },
