@@ -101,7 +101,7 @@ class Server
             foreach ($parts as $part) {
                 $filename = Path::join($dir, "part-{$part['index']}-{$part['etag']}");
                 if (!$this->filesystem->exists($filename)) {
-                    abort(400, 'InvalidPart');
+                    throw new HttpException(400, 'InvalidPart');
                 }
                 $content = file_get_contents($filename);
                 fwrite($fp, $content);

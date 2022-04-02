@@ -36,7 +36,7 @@ class Client
     {
         if ($file->getSize() <= self::BLOCK_SIZE) {
             $this->client->request($this->method, $this->endpoint, [
-                'body' => Psr7\Utils::streamFor($file->openFile()),
+                'body' => $this->getFileStream($file),
             ]);
         } else {
             $id    = $this->doInitiate();
@@ -58,7 +58,7 @@ class Client
 
     protected function doUpload($id, File $file)
     {
-        $stream = Psr7\Utils::streamFor($file->openFile());
+        $stream = $this->getFileStream($file);
 
         $requests = function () use ($id, $stream) {
             $total = ceil($stream->getSize() / self::BLOCK_SIZE);
@@ -111,5 +111,10 @@ class Client
                 'parts' => $parts,
             ],
         ]);
+    }
+
+    protected function getFileStream(File $file)
+    {
+        return Psr7\Utils::streamFor($file->openFile(), ['size' => $file->getSize()]);
     }
 }
