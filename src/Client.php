@@ -32,16 +32,19 @@ class Client
         ]);
     }
 
-    public function upload(File $file)
+    public function upload(File $file, $metadata = [])
     {
         if ($file->getSize() <= self::BLOCK_SIZE) {
             $this->client->request($this->method, $this->endpoint, [
-                'body' => $this->getFileStream($file),
+                'body'    => $this->getFileStream($file),
+                'headers' => [
+                    'x-metadata' => json_encode($metadata),
+                ],
             ]);
         } else {
             $id    = $this->doInitiate();
             $parts = $this->doUpload($id, $file);
-            $this->doComplete($id, $parts);
+            $this->doComplete($id, $parts, $metadata);
         }
     }
 
@@ -100,12 +103,13 @@ class Client
         return $parts;
     }
 
-    protected function doComplete($id, $parts)
+    protected function doComplete($id, $parts, $metadata = [])
     {
         $this->client->request($this->method, $this->endpoint, [
             'headers' => [
-                'x-stage' => 'complete',
-                'x-id'    => $id,
+                'x-stage'    => 'complete',
+                'x-id'       => $id,
+                'x-metadata' => json_encode($metadata),
             ],
             'json'    => [
                 'parts' => $parts,

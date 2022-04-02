@@ -47,7 +47,8 @@ class Server
         $this->filesystem->dumpFile($filename, $content);
 
         if ($this->onComplete) {
-            call_user_func($this->onComplete, new File($filename));
+            $metadata = json_decode($this->request->header('x-metadata'), true);
+            call_user_func($this->onComplete, new File($filename), $metadata);
         }
 
         $this->filesystem->remove($filename);
@@ -108,7 +109,8 @@ class Server
             }
 
             if ($this->onComplete) {
-                call_user_func($this->onComplete, new File($dest));
+                $metadata = json_decode($this->request->header('x-metadata'), true);
+                call_user_func($this->onComplete, new File($dest), $metadata);
             }
 
             return response('', 204);
