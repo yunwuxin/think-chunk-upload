@@ -50,6 +50,8 @@ class Server
             call_user_func($this->onComplete, new File($filename));
         }
 
+        $this->filesystem->remove($filename);
+
         return response('', 204);
     }
 
