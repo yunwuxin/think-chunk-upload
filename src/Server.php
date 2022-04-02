@@ -77,7 +77,7 @@ class Server
 
         $this->filesystem->dumpFile(Path::join($dir, "part-{$index}-{$sha1}"), $content);
 
-        return response()->header([
+        return response('', 204)->header([
             'ETag' => $sha1,
         ]);
     }
