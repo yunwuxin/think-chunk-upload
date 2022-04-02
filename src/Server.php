@@ -55,7 +55,7 @@ class Server
 
     protected function initiate()
     {
-        $id = Uuid::uuid4()->toString();
+        $id = $this->createTemporaryDirectory();
 
         return response('', 201)->header([
             'x-id' => $id,
@@ -114,6 +114,17 @@ class Server
             fclose($fp);
             $this->filesystem->remove($dir);
         }
+    }
+
+    protected function createTemporaryDirectory()
+    {
+        $id = Uuid::uuid4()->toString();
+
+        $dir = Path::join(sys_get_temp_dir(), $id);
+
+        $this->filesystem->mkdir($dir);
+
+        return $id;
     }
 
     protected function getTemporaryDirectory()
