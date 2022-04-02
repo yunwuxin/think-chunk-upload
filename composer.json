@@ -1,0 +1,20 @@
+{
+    "name": "yunwuxin/think-chunk-upload",
+    "license": "Apache-2.0",
+    "authors": [
+        {
+            "name": "yunwuxin",
+            "email": "448901948@qq.com"
+        }
+    ],
+    "require": {
+        "topthink/framework": "^6.0",
+        "ramsey/uuid": "^4.3",
+        "spatie/temporary-directory": "^2.1"
+    },
+    "autoload": {
+        "psr-4": {
+            "think\\ChunkUpload\\": "src"
+        }
+    }
+}
