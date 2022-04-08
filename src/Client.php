@@ -3,6 +3,7 @@
 namespace think\ChunkUpload;
 
 use GuzzleHttp\Exception\RequestException;
+use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Pool;
 use GuzzleHttp\Psr7;
 use GuzzleHttp\Psr7\Request;
@@ -25,7 +26,11 @@ class Client
         $this->endpoint = $endpoint;
         $this->method   = $method;
 
+        $stack = HandlerStack::create();
+        $stack->remove('allow_redirects');
+
         $this->client = new \GuzzleHttp\Client([
+            'handler' => $stack,
             'headers' => array_merge([
                 'Accept' => 'application/json',
             ], $headers),
