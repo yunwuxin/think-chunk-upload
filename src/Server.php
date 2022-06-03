@@ -42,18 +42,24 @@ class Server
     {
         $filename = Path::join(sys_get_temp_dir(), Uuid::uuid4()->toString());
 
-        $content = $this->request->getContent();
+        try {
+            $content = $this->request->getContent();
 
-        $this->filesystem->dumpFile($filename, $content);
+            $this->filesystem->dumpFile($filename, $content);
 
-        if ($this->onComplete) {
-            $metadata = json_decode($this->request->header('x-metadata'), true);
-            call_user_func($this->onComplete, new File($filename), $metadata);
+            if ($this->onComplete) {
+                $metadata = json_decode($this->request->header('x-metadata'), true);
+                $result   = call_user_func($this->onComplete, new File($filename), $metadata);
+            }
+
+            if (!empty($result)) {
+                return json($result);
+            }
+
+            return response('', 204);
+        } finally {
+            $this->filesystem->remove($filename);
         }
-
-        $this->filesystem->remove($filename);
-
-        return response('', 204);
     }
 
     protected function initiate()
@@ -110,7 +116,11 @@ class Server
 
             if ($this->onComplete) {
                 $metadata = json_decode($this->request->header('x-metadata'), true);
-                call_user_func($this->onComplete, new File($dest), $metadata);
+                $result   = call_user_func($this->onComplete, new File($dest), $metadata);
+            }
+
+            if (!empty($result)) {
+                return json($result);
             }
 
             return response('', 204);

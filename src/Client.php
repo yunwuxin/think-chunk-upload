@@ -2,12 +2,9 @@
 
 namespace think\ChunkUpload;
 
-use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\HandlerStack;
-use GuzzleHttp\Pool;
 use GuzzleHttp\Psr7;
-use GuzzleHttp\Psr7\Request;
-use GuzzleHttp\Psr7\Response;
+use InvalidArgumentException;
 use think\File;
 
 class Client
@@ -40,17 +37,19 @@ class Client
     public function upload(File $file, $metadata = [])
     {
         if ($file->getSize() <= self::BLOCK_SIZE) {
-            $this->client->request($this->method, $this->endpoint, [
+            $response = $this->client->request($this->method, $this->endpoint, [
                 'body'    => $this->getFileStream($file),
                 'headers' => [
                     'x-metadata' => json_encode($metadata),
                 ],
             ]);
         } else {
-            $id    = $this->doInitiate();
-            $parts = $this->doUpload($id, $file);
-            $this->doComplete($id, $parts, $metadata);
+            $id       = $this->doInitiate();
+            $parts    = $this->doUpload($id, $file);
+            $response = $this->doComplete($id, $parts, $metadata);
         }
+
+        return $response;
     }
 
     protected function doInitiate()
@@ -68,49 +67,40 @@ class Client
     {
         $stream = $this->getFileStream($file);
 
-        $requests = function () use ($id, $stream) {
-            $total = ceil($stream->getSize() / self::BLOCK_SIZE);
-            for ($i = 0; $i < $total; $i++) {
-                $fileBlock = $stream->read(self::BLOCK_SIZE);
-                yield new Request($this->method, $this->endpoint, [
-                    'x-stage' => 'upload',
-                    'x-id'    => $id,
-                    'x-index' => $i + 1,
-                ], Psr7\Utils::streamFor($fileBlock));
-            }
-        };
+        $total = ceil($stream->getSize() / self::BLOCK_SIZE);
 
         $parts = [];
 
-        $pool = new Pool($this->client, $requests(), [
-            'concurrency' => 3,
-            'fulfilled'   => function (Response $response, $index) use (&$parts) {
-                $etag = $response->getHeaderLine('etag');
+        for ($i = 0; $i < $total; $i++) {
+            $fileBlock = $stream->read(self::BLOCK_SIZE);
 
-                if (empty($etag)) {
-                    throw new \InvalidArgumentException('etag header not found');
-                }
+            $response = $this->client->request($this->method, $this->endpoint, [
+                'body'    => Psr7\Utils::streamFor($fileBlock),
+                'headers' => [
+                    'x-stage' => 'upload',
+                    'x-id'    => $id,
+                    'x-index' => $i + 1,
+                ],
+            ]);
 
-                $parts[$index] = [
-                    'index' => $index + 1,
-                    'etag'  => $etag,
-                ];
-            },
-            'rejected'    => function (RequestException $reason) {
-                throw $reason;
-            },
-        ]);
+            $etag = $response->getHeaderLine('etag');
 
-        $pool->promise()->wait();
+            if (empty($etag)) {
+                throw new InvalidArgumentException('etag header not found');
+            }
 
-        ksort($parts);
+            $parts[$i] = [
+                'index' => $i + 1,
+                'etag'  => $etag,
+            ];
+        }
 
         return $parts;
     }
 
     protected function doComplete($id, $parts, $metadata = [])
     {
-        $this->client->request($this->method, $this->endpoint, [
+        return $this->client->request($this->method, $this->endpoint, [
             'headers' => [
                 'x-stage'    => 'complete',
                 'x-id'       => $id,
