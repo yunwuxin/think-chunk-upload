@@ -25,12 +25,14 @@ class Client
 
         $stack = HandlerStack::create();
         $stack->remove('allow_redirects');
+        $stack->remove('cookies');
 
         $this->client = new \GuzzleHttp\Client([
             'handler' => $stack,
             'headers' => array_merge([
                 'Accept' => 'application/json',
             ], $headers),
+            'expect'  => false,
         ]);
     }
 
