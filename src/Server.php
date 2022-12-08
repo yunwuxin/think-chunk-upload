@@ -19,15 +19,18 @@ class Server
     /** @var Filesystem */
     protected $filesystem;
 
+    protected $tempDir;
+
     public function __construct(Filesystem $filesystem)
     {
         $this->filesystem = $filesystem;
     }
 
-    public function serve(Request $request, $onComplete)
+    public function serve(Request $request, $onComplete, $tempDir = null)
     {
         $this->request    = $request;
         $this->onComplete = $onComplete;
+        $this->tempDir    = $tempDir ?: sys_get_temp_dir();
 
         $stage = $request->header('x-stage');
 
@@ -40,7 +43,7 @@ class Server
 
     protected function single()
     {
-        $filename = Path::join(sys_get_temp_dir(), Uuid::uuid4()->toString());
+        $filename = Path::join($this->tempDir, Uuid::uuid4()->toString());
 
         try {
             $content = $this->request->getContent();
@@ -114,6 +117,8 @@ class Server
                 fwrite($fp, $content);
             }
 
+            fclose($fp);
+
             if ($this->onComplete) {
                 $metadata = json_decode($this->request->header('x-metadata'), true);
                 $result   = call_user_func($this->onComplete, new File($dest), $metadata);
@@ -125,7 +130,9 @@ class Server
 
             return response('', 204);
         } finally {
-            fclose($fp);
+            if (is_resource($fp)) {
+                fclose($fp);
+            }
             $this->filesystem->remove($dir);
         }
     }
@@ -134,7 +141,7 @@ class Server
     {
         $id = Uuid::uuid4()->toString();
 
-        $dir = Path::join(sys_get_temp_dir(), $id);
+        $dir = Path::join($this->tempDir, $id);
 
         $this->filesystem->mkdir($dir);
 
@@ -148,7 +155,7 @@ class Server
             throw new HttpException(400);
         }
 
-        $dir = Path::join(sys_get_temp_dir(), $id);
+        $dir = Path::join($this->tempDir, $id);
 
         if (!$this->filesystem->exists($dir)) {
             throw new HttpException(400);
