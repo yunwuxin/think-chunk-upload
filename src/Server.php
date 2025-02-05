@@ -50,10 +50,7 @@ class Server
 
             $this->filesystem->dumpFile($filename, $content);
 
-            if ($this->onComplete) {
-                $metadata = json_decode($this->request->header('x-metadata'), true);
-                $result   = call_user_func($this->onComplete, new File($filename), $metadata);
-            }
+            $result = $this->onComplete($filename);
 
             if (!empty($result)) {
                 return json($result);
@@ -119,10 +116,7 @@ class Server
 
             fclose($fp);
 
-            if ($this->onComplete) {
-                $metadata = json_decode($this->request->header('x-metadata'), true);
-                $result   = call_user_func($this->onComplete, new File($dest), $metadata);
-            }
+            $result = $this->onComplete($dest);
 
             if (!empty($result)) {
                 return json($result);
@@ -134,6 +128,14 @@ class Server
                 fclose($fp);
             }
             $this->filesystem->remove($dir);
+        }
+    }
+
+    protected function onComplete($filename)
+    {
+        if ($this->onComplete) {
+            $metadata = json_decode($this->request->header('x-metadata', ''), true);
+            return call_user_func($this->onComplete, new File($filename), $metadata);
         }
     }
 
